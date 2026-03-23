@@ -29,11 +29,14 @@ def get_meals(user=Depends(get_current_user)):
 
 @router.post("/")
 def create_meal(body: MealCreate, user=Depends(get_current_user)):
-    result = supabase.table("meals").insert({
-        "user_id": user.id,
-        **{k: v for k, v in body.dict().items() if v is not None}
-    }).execute()
-    return {"message": "Repas enregistré", "data": result.data}
+    try:
+        result = supabase.table("meals").insert({
+            "user_id": user.id,
+            **{k: v for k, v in body.dict().items() if v is not None}
+        }).execute()
+        return {"message": "Repas enregistré", "data": result.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats/week")
 def get_week_stats(user=Depends(get_current_user)):
