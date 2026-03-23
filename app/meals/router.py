@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -28,9 +28,20 @@ def get_meals(user=Depends(get_current_user)):
     return result.data
 
 @router.post("/")
-def create_meal(body: MealCreate, user=Depends(get_current_user)):
+def create_meal(body: MealCreate, user=Depends(get_current_user), request: Request = None):
     try:
-        result = supabase.table("meals").insert({
+        from app.config import SUPABASE_URL, SUPABASE_ANON_KEY
+        from supabase import create_client
+
+        # Récupérer le token depuis le header
+        auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+        token = auth_header.replace("Bearer ", "")
+
+        # Créer un client Supabase authentifié avec le token utilisateur
+        authed_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        authed_client.postgrest.auth(token)
+
+        result = authed_client.table("meals").insert({
             "user_id": user.id,
             **{k: v for k, v in body.dict().items() if v is not None}
         }).execute()
