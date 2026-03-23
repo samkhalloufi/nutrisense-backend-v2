@@ -1,81 +1,47 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
 from app.config import supabase
+from app.auth.dependencies import get_current_user
 
 router = APIRouter()
 
-class RegisterRequest(BaseModel):
-    email: str
-    password: str
-    display_name: str | None = None
+class MealCreate(BaseModel):
+    meal_type: Optional[str] = None
+    eaten_at: Optional[str] = None
+    total_kcal: Optional[float] = None
+    total_carbs_g: Optional[float] = None
+    total_protein_g: Optional[float] = None
+    total_fat_g: Optional[float] = None
+    notes: Optional[str] = None
+    source: str = "manual"
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
+@router.get("/")
+def get_meals(user=Depends(get_current_user)):
+    result = supabase.table("meals")\
+        .select("*")\
+        .eq("user_id", user.id)\
+        .order("eaten_at", desc=True)\
+        .limit(20)\
+        .execute()
+    return result.data
 
-@router.post("/register")
-def register(body: RegisterRequest):
-    """Créer un nouveau compte utilisateur"""
-    try:
-        response = supabase.auth.sign_up(
-            email=body.email,
-            password=body.password
-        )
+@router.post("/")
+def create_meal(body: MealCreate, user=Depends(get_current_user)):
+    result = supabase.table("meals").insert({
+        "user_id": user.id,
+        **{k: v for k, v in body.dict().items() if v is not None}
+    }).execute()
+    return {"message": "Repas enregistré", "data": result.data}
 
-        if not response.user:
-            raise HTTPException(status_code=400, detail="Erreur lors de la création du compte")
-
-        user = response.user
-
-        supabase.table("user_profile").insert({
-            "user_id": user.id,
-            "display_name": body.display_name or body.email.split("@")[0]
-        }).execute()
-
-        supabase.table("health_profile").insert({
-            "user_id": user.id
-        }).execute()
-
-        return {
-            "message": "Compte créé avec succès",
-            "user_id": user.id,
-            "email": user.email
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.post("/login")
-def login(body: LoginRequest):
-    """Se connecter et récupérer un token JWT"""
-    try:
-        response = supabase.auth.sign_in(
-            email=body.email,
-            password=body.password
-        )
-
-        if not response.user:
-            raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-
-        return {
-            "access_token": response.session.access_token,
-            "refresh_token": response.session.refresh_token,
-            "user_id": response.user.id,
-            "email": response.user.email
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-
-
-@router.post("/logout")
-def logout():
-    """Se déconnecter"""
-    try:
-        supabase.auth.sign_out()
-    except:
-        pass
-    return {"message": "Déconnecté avec succès"}
+@router.get("/stats/week")
+def get_week_stats(user=Depends(get_current_user)):
+    from datetime import timedelta
+    seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
+    result = supabase.table("meals")\
+        .select("eaten_at, total_kcal")\
+        .eq("user_id", user.id)\
+        .gte("eaten_at", seven_days_ago)\
+        .execute()
+    return {"meals": result.data, "count": len(result.data)}
