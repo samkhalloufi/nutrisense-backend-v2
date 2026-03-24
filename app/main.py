@@ -5,7 +5,8 @@ from app.users.router import router as users_router
 from app.recipes.router import router as recipes_router
 from app.meals.router import router as meals_router
 from app.recommendations.router import router as reco_router
- 
+from app.photos.router import router as photos_router
+
 app = FastAPI(
     title="NutriSense AI",
     description="Backend API pour l'application de nutrition personnalisée",
@@ -27,6 +28,7 @@ app.include_router(users_router,   prefix="/users",           tags=["Utilisateur
 app.include_router(recipes_router, prefix="/recipes",         tags=["Recettes"])
 app.include_router(meals_router,   prefix="/meals",           tags=["Repas"])
 app.include_router(reco_router,    prefix="/recommendations", tags=["Recommandations"])
+app.include_router(photos_router,  prefix="/photos",          tags=["Photos"])
  
 @app.get("/")
 def health_check():
