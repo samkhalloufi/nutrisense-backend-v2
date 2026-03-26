@@ -13,7 +13,7 @@ from app.config import SUPABASE_URL, SUPABASE_ANON_KEY
 router = APIRouter()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 class PhotoAnalyzeRequest(BaseModel):
     image_base64: str
