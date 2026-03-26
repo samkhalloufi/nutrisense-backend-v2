@@ -57,10 +57,17 @@ def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_
 
         import re
         text = response.text.strip()
-        # Extraire uniquement le JSON entre { }
+        print(f"GEMINI RESPONSE: {text[:500]}")
+
+        # Nettoyer les backticks markdown
+        text = re.sub(r'```json\s*', '', text)
+        text = re.sub(r'```\s*', '', text)
+        text = text.strip()
+
+        # Extraire le JSON
         json_match = re.search(r'\{.*\}', text, re.DOTALL)
         if not json_match:
-            raise ValueError(f"Pas de JSON trouvé dans: {text[:200]}")
+            raise ValueError(f"Pas de JSON: {text[:200]}")
         result = json.loads(json_match.group())
 
         # Sauvegarder l'analyse dans Supabase
