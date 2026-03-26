@@ -21,7 +21,7 @@ class PhotoAnalyzeRequest(BaseModel):
 def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_current_user)):
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("gemini-pro-vision")
 
         image_data = base64.b64decode(body.image_base64)
 
@@ -51,8 +51,8 @@ def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_
         """
 
         response = model.generate_content([
-            prompt,
-            {"mime_type": "image/jpeg", "data": image_data}
+            {"mime_type": "image/jpeg", "data": base64.b64encode(image_data).decode()},
+            prompt
         ])
 
         import re
