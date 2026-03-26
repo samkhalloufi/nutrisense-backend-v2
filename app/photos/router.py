@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
-import google.generativeai as genai
+import httpx
 import base64
 import os
 import json
+import re
 import traceback
 from app.auth.dependencies import get_current_user
 from supabase import create_client
@@ -12,18 +13,17 @@ from app.config import SUPABASE_URL, SUPABASE_ANON_KEY
 router = APIRouter()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 class PhotoAnalyzeRequest(BaseModel):
     image_base64: str
     meal_id: str
 
 @router.post("/analyze")
-def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_current_user)):
+async def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_current_user)):
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-pro-vision")
-
         image_data = base64.b64decode(body.image_base64)
+        image_b64 = base64.b64encode(image_data).decode()
 
         prompt = """
         Analyse cette photo de repas et retourne UNIQUEMENT un JSON valide avec ce format exact:
@@ -50,13 +50,25 @@ def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_
         Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.
         """
 
-        response = model.generate_content([
-            {"mime_type": "image/jpeg", "data": base64.b64encode(image_data).decode()},
-            prompt
-        ])
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": image_b64
+                        }
+                    }
+                ]
+            }]
+        }
 
-        import re
-        text = response.text.strip()
+        async with httpx.AsyncClient(timeout=30) as client:
+            gemini_response = await client.post(GEMINI_URL, json=payload)
+            gemini_data = gemini_response.json()
+
+        text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
         print(f"GEMINI RESPONSE: {text[:500]}")
 
         # Nettoyer les backticks markdown
@@ -73,10 +85,10 @@ def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_
         # Sauvegarder l'analyse dans Supabase
         auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
         token = auth_header.replace("Bearer ", "")
-        client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-        client.postgrest.auth(token)
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        supabase_client.postgrest.auth(token)
 
-        client.table("meal_analysis_results").insert({
+        supabase_client.table("meal_analysis_results").insert({
             "meal_id": body.meal_id,
             "ai_model": "gemini-1.5-flash",
             "detected_items": result.get("detected_items", []),
