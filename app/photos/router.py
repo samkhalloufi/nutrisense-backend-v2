@@ -15,6 +15,16 @@ router = APIRouter()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
+@router.get("/models")
+def list_models():
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    with httpx.Client(timeout=30) as client:
+        response = client.get(
+            f"https://generativelanguage.googleapis.com/v1/models?key={GEMINI_API_KEY}"
+        )
+        return response.json()
+
+
 class PhotoAnalyzeRequest(BaseModel):
     image_base64: str
     meal_id: str
