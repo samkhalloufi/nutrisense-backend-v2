@@ -4,6 +4,7 @@ import google.generativeai as genai
 import base64
 import os
 import json
+import traceback
 from app.auth.dependencies import get_current_user
 from supabase import create_client
 from app.config import SUPABASE_URL, SUPABASE_ANON_KEY
@@ -73,4 +74,6 @@ def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_
         return result
 
     except Exception as e:
+        error_detail = traceback.format_exc()
+        print(f"ERREUR ANALYSE: {error_detail}")
         raise HTTPException(status_code=500, detail=str(e))
