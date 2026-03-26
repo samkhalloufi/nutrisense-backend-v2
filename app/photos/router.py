@@ -55,7 +55,13 @@ def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_
             {"mime_type": "image/jpeg", "data": image_data}
         ])
 
-        result = json.loads(response.text.strip())
+        import re
+        text = response.text.strip()
+        # Extraire uniquement le JSON entre { }
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if not json_match:
+            raise ValueError(f"Pas de JSON trouvé dans: {text[:200]}")
+        result = json.loads(json_match.group())
 
         # Sauvegarder l'analyse dans Supabase
         auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
