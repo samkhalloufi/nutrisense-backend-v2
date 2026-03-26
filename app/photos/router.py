@@ -21,7 +21,7 @@ class PhotoAnalyzeRequest(BaseModel):
 def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_current_user)):
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
         image_data = base64.b64decode(body.image_base64)
 
