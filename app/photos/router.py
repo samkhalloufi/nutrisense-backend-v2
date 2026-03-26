@@ -44,7 +44,7 @@ def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_
 Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire."""
 
         payload = {
-            "model": "llama-3.2-11b-vision-preview",
+            "model": "meta-llama/llama-4-scout-17b-16e-instruct",
             "messages": [
                 {
                     "role": "user",
@@ -99,7 +99,7 @@ Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire."""
 
         client_db.table("meal_analysis_results").insert({
             "meal_id": body.meal_id,
-            "ai_model": "llama-3.2-11b-vision-preview",
+            "ai_model": "meta-llama/llama-4-scout-17b-16e-instruct",
             "detected_items": result.get("detected_items", []),
             "confidence_score": result.get("overall_success", 0),
             "final_nutrition": result
