@@ -69,6 +69,7 @@ async def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depend
             gemini_data = gemini_response.json()
 
         text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
+        print(f"GEMINI RAW TEXT: {repr(text[:500])}")
         print(f"GEMINI RESPONSE: {text[:500]}")
 
         # Nettoyer les backticks markdown
