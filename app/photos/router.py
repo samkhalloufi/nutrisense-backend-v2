@@ -68,6 +68,11 @@ async def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depend
             gemini_response = await client.post(GEMINI_URL, json=payload)
             gemini_data = gemini_response.json()
 
+        print(f"GEMINI FULL RESPONSE: {gemini_data}")
+        if "error" in gemini_data:
+            raise ValueError(f"Erreur Gemini: {gemini_data['error']}")
+        if "candidates" not in gemini_data:
+            raise ValueError(f"Pas de candidates: {gemini_data}")
         text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
         print(f"GEMINI RAW TEXT: {repr(text[:500])}")
         print(f"GEMINI RESPONSE: {text[:500]}")
