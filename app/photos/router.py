@@ -20,7 +20,7 @@ class PhotoAnalyzeRequest(BaseModel):
     meal_id: str
 
 @router.post("/analyze")
-async def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_current_user)):
+def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depends(get_current_user)):
     try:
         image_data = base64.b64decode(body.image_base64)
         image_b64 = base64.b64encode(image_data).decode()
@@ -64,10 +64,12 @@ async def analyze_photo(body: PhotoAnalyzeRequest, request: Request, user=Depend
             }]
         }
 
-        async with httpx.AsyncClient(timeout=30) as client:
-            gemini_response = await client.post(GEMINI_URL, json=payload)
+        with httpx.Client(timeout=30) as client:
+            gemini_response = client.post(GEMINI_URL, json=payload)
             gemini_data = gemini_response.json()
 
+        print(f"STATUS: {gemini_response.status_code}")
+        print(f"RESPONSE: {gemini_data}")
         print(f"GEMINI FULL RESPONSE: {gemini_data}")
         if "error" in gemini_data:
             raise ValueError(f"Erreur Gemini: {gemini_data['error']}")
